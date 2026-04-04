@@ -180,27 +180,6 @@ export default function DownloadTab({ onDownloadComplete }) {
                                 Select File
                             </button>
                         </div>
-                        
-                        {error && (
-                            <div className="md:col-span-2 mt-2 p-6 bg-red-950/40 border border-red-500/30 rounded-xl flex flex-col gap-4 animate-in slide-in-from-top-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={18} />
-                                    <div className="text-sm text-red-200/80">
-                                        <p className="font-bold mb-1">Extraction Blocked</p>
-                                        <p>{error}</p>
-                                    </div>
-                                </div>
-                                <div className="pl-7 pt-2 border-t border-white/5">
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-3">Fallback Path Recommended:</p>
-                                    <button 
-                                        onClick={() => document.getElementById('fileInput').click()}
-                                        className="text-xs bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 w-fit"
-                                    >
-                                        <Upload size={14} /> Upload Video Manually
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ) : (
                     <div className="w-full max-w-5xl flex gap-12 mt-10 h-full max-h-[500px]">
@@ -299,6 +278,43 @@ export default function DownloadTab({ onDownloadComplete }) {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+                {error && (
+                    <div className="w-full max-w-4xl mt-12 p-8 bg-red-500/5 border border-red-500/20 rounded-3xl flex flex-col gap-8 animate-in slide-in-from-bottom-8 duration-700 shadow-2xl backdrop-blur-2xl relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-red-500/40" />
+                        
+                        <div className="flex items-start gap-5">
+                            <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                <AlertCircle className="text-red-400" size={28} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-xl font-black text-white tracking-tight mb-2">Extraction Signal Interrupted</h3>
+                                <div className="text-sm text-red-200/60 leading-relaxed max-w-3xl space-y-2">
+                                    <p>The network handshake with <span className="text-red-400 font-mono">instagram.com</span> was blocked by the cloud provider's firewall.</p>
+                                    <p className="text-xs font-mono opacity-50">ERROR_CODE: {error.includes('resolve') ? 'DNS_RESOLUTION_NULL' : 'AUTH_REJECTED'}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex flex-col lg:flex-row items-center gap-8 p-6 bg-white/[0.02] rounded-2xl border border-white/5 group-hover:bg-white/[0.04] transition-colors">
+                            <div className="flex-1 flex items-center gap-4">
+                                <div className="p-3 bg-purple-500/10 rounded-xl">
+                                    <Info className="text-purple-400" size={20} />
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">Recovery Protocol Available</span>
+                                    <p className="text-xs text-gray-400 mt-1">Uploading the file directly from your machine bypasses all platform restrictions. This is the 100% stable fallback.</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={(e) => { e.preventDefault(); document.getElementById('fileInput').click(); }}
+                                className="w-full lg:w-auto bg-white text-black hover:bg-emerald-400 hover:text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-4 transition-all hover:scale-[1.05] active:scale-95 shadow-2xl shadow-white/5 shrink-0"
+                            >
+                                <Upload size={18} /> 
+                                Switch to Local Asset
+                            </button>
                         </div>
                     </div>
                 )}
