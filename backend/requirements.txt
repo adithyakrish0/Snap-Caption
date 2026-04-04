@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+yt-dlp
+opencv-python-headless
+numpy
+requests
+Pillow
+imagehash
+sse-starlette
+groq
+python-dotenv
