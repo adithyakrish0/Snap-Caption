@@ -29,11 +29,16 @@ class DownloaderService:
             'no_warnings': True,
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'overwrites': True,
+            'source_address': '0.0.0.0', # Force IPv4 to bypass cloud DNS/network resolution errors
+            'nocheckcertificate': True,
         }
 
-        # Specialized YouTube bypass logic
+        # Specialized YouTube/Meta bypass logic
         if "youtube.com" in url or "youtu.be" in url:
             ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}}
+        elif "instagram.com" in url:
+            # Instagram often requires forcing a generic referer or specific headers
+            ydl_opts['referer'] = 'https://www.instagram.com/'
 
         try:
             with YoutubeDL(ydl_opts) as ydl:
