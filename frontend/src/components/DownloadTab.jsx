@@ -182,9 +182,23 @@ export default function DownloadTab({ onDownloadComplete }) {
                         </div>
                         
                         {error && (
-                            <div className="md:col-span-2 mt-2 p-4 bg-red-950/40 border border-red-500/30 rounded-xl flex items-start gap-3 animate-in slide-in-from-top-4">
-                                <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={18} />
-                                <div className="text-sm text-red-200/80">{error}</div>
+                            <div className="md:col-span-2 mt-2 p-6 bg-red-950/40 border border-red-500/30 rounded-xl flex flex-col gap-4 animate-in slide-in-from-top-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={18} />
+                                    <div className="text-sm text-red-200/80">
+                                        <p className="font-bold mb-1">Extraction Blocked</p>
+                                        <p>{error}</p>
+                                    </div>
+                                </div>
+                                <div className="pl-7 pt-2 border-t border-white/5">
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-3">Fallback Path Recommended:</p>
+                                    <button 
+                                        onClick={() => document.getElementById('fileInput').click()}
+                                        className="text-xs bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 w-fit"
+                                    >
+                                        <Upload size={14} /> Upload Video Manually
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -304,4 +318,11 @@ function MetaItem({ icon, label, value }) {
             </div>
         </div>
     )
+}
+
+function extractVideoId(url) {
+    if (!url) return null;
+    const reg = /(?:v=|\/)([0-9A-Za-z_-]{11}).*/;
+    const match = url.match(reg);
+    return match ? match[1] : null;
 }
