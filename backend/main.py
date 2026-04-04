@@ -34,14 +34,16 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent.parent
 DOWNLOAD_DIR = BASE_DIR / "backend" / "downloads"
 SCREENSHOT_DIR = BASE_DIR / "backend" / "screenshots"
+DATA_PROJECTS_DIR = BASE_DIR / "backend" / "data" / "projects"
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+DATA_PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Services
 downloader = DownloaderService()
-extractor = ExtractorService()
+extractor = ExtractorService(output_base=str(DATA_PROJECTS_DIR))
 transcriber = TranscriberService() 
 
 # API Routes
@@ -107,6 +109,7 @@ async def transcribe_stream(video_path: str):
 # Serve static files (screenshots and downloads)
 app.mount("/files/downloads", StaticFiles(directory=DOWNLOAD_DIR), name="downloads")
 app.mount("/files/screenshots", StaticFiles(directory=SCREENSHOT_DIR), name="screenshots")
+app.mount("/files/projects", StaticFiles(directory=DATA_PROJECTS_DIR), name="projects")
 
 # Production: Serve Built Frontend
 if FRONTEND_DIST.exists():
