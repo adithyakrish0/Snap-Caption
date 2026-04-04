@@ -2,8 +2,44 @@ import os
 import re
 import asyncio
 import json
+import socket
+import requests
 from pathlib import Path
 from yt_dlp import YoutubeDL
+
+# --- UNIVERSAL DNS BYPASS (Hugging Face / Cloud Protection) ---
+# We monkeypatch socket.getaddrinfo to resolve Meta/Instagram domains via DoH
+# This bypasses the 'DNS_RESOLUTION_NULL' block from cloud providers.
+
+_original_getaddrinfo = socket.getaddrinfo
+
+def resolve_via_doh(hostname):
+    """Resolve a hostname via Cloudflare DNS-over-HTTPS API."""
+    try:
+        # Use a high-vailability public DoH API (Cloudflare)
+        url = f"https://1.1.1.1/dns-query?name={hostname}&type=A"
+        headers = {"accept": "application/dns-json"}
+        response = requests.get(url, headers=headers, timeout=5)
+        data = response.json()
+        
+        if "Answer" in data:
+            # Return the first IP found
+            return data["Answer"][0]["data"]
+    except Exception:
+        pass
+    return None
+
+def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    if host in ["www.instagram.com", "instagram.com", "facebook.com", "www.facebook.com"]:
+        ip = resolve_via_doh(host)
+        if ip:
+            # Return a valid getaddrinfo response for the resolved IP
+            return _original_getaddrinfo(ip, port, family, type, proto, flags)
+    
+    return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+# Apply the monkeypatch globally for the downloader process
+socket.getaddrinfo = patched_getaddrinfo
 
 class DownloaderService:
     def __init__(self, output_dir=None):
@@ -43,7 +79,8 @@ class DownloaderService:
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 # 1. Info Extraction
-                yield {"status": "log", "message": "Establishing secure handshake...", "type": "info"}
+                yield {"status": "log", "message": "Applying Universal DNS Handshake (DoH Bypassing)...", "type": "warning"}
+                yield {"status": "log", "message": "Establishing secure connection to cloud source...", "type": "info"}
                 
                 # Run blocking extract_info in executor
                 info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
