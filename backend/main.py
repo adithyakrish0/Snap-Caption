@@ -36,10 +36,10 @@ async def startup_event():
         except Exception as e:
             print(f"[STEALTH] Handshake Failure: {str(e)}")
 
-# Enable CORS for frontend communication
+# Enable CORS: Critical for Hybrid Deployment (HF Frontend -> Railway Backend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # Allow HF Space domains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

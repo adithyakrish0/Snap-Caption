@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Check, Loader2, Play, Info, Layers, Eye, Video as VideoIcon, CheckCircle2, XCircle, MousePointer2, ChevronRight, CheckCircle } from 'lucide-react'
 
-const API_URL = "" 
+const API_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export default function ReviewGallery({ video, onFramesExtracted }) {
     const [frames, setFrames] = useState([])

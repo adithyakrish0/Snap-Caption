@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Sparkles, Loader2, Copy, Check, FileText, ChevronRight, Play, Info, HardDrive, Cpu, ExternalLink } from 'lucide-react'
 
-const API_URL = ""
+const API_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export default function TranscribeTab({ video, projectId, frames }) {
     const [loading, setLoading] = useState(false)

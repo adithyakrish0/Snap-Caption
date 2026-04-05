@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Download, Loader2, Play, Info, CheckCircle2, AlertCircle, FileVideo, Clock, HardDrive, Youtube, FileUp, Upload, Shield, ChevronDown, ChevronUp } from 'lucide-react'
 
-const API_URL = ""
+const API_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 const getDomain = (url) => {
     try {
