@@ -3,8 +3,9 @@ import { Sparkles, Loader2, Copy, Check, FileText, ChevronRight, Play, Info, Har
 
 const API_URL = ""
 
-export default function TranscribeTab({ video }) {
+export default function TranscribeTab({ video, projectId, frames }) {
     const [loading, setLoading] = useState(false)
+    const [exporting, setExporting] = useState(false)
     const [progress, setProgress] = useState({ percent: 0, status: 'idle' })
     const [logs, setLogs] = useState([])
     const [result, setResult] = useState(null)
@@ -56,6 +57,42 @@ export default function TranscribeTab({ video }) {
             addLog("Connection interrupted. Ensure GROQ_API_KEY is set.", "error")
             setLoading(false)
             eventSource.close()
+        }
+    }
+
+    const handleExport = async () => {
+        if (!result || !projectId) return
+        setExporting(true)
+        addLog("Bundling Master Package...", "info")
+        
+        try {
+            const response = await fetch(`${API_URL}/export`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    project_id: projectId,
+                    selected_frames: frames,
+                    transcription: result,
+                    title: video?.filename || "SnapCaption_Asset"
+                })
+            })
+            
+            if (!response.ok) throw new Error("Export failed")
+            const data = await response.json()
+            
+            addLog("Master Package Ready!", "success")
+            
+            // Trigger browser download
+            const link = document.createElement('a')
+            link.href = data.download_url
+            link.download = data.filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+        } catch (err) {
+            addLog(`Export Error: ${err.message}`, "error")
+        } finally {
+            setExporting(false)
         }
     }
 
@@ -233,8 +270,13 @@ export default function TranscribeTab({ video }) {
                             </div>
 
                             <div className="p-4 bg-black/40 border-t border-white/5 flex justify-end">
-                                <button className="px-10 py-3 bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-lg shadow-purple-900/40 transform active:scale-95 transition-all">
-                                    Export Final Package
+                                <button 
+                                    onClick={handleExport}
+                                    disabled={exporting}
+                                    className="px-10 py-3 bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-lg shadow-purple-900/40 transform active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50"
+                                >
+                                    {exporting ? <Loader2 className="animate-spin" size={14} /> : <FileText size={14} />}
+                                    {exporting ? 'Bundling...' : 'Export Final Package'}
                                 </button>
                             </div>
                         </div>

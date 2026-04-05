@@ -63,12 +63,17 @@ function App() {
             onFramesExtracted={(pid, extractedFrames) => {
               setProjectId(pid)
               setFrames(extractedFrames)
+              setActiveTab('transcribe')
             }}
           />
         )}
 
         {activeTab === 'transcribe' && (
-          <TranscribeTab video={currentVideo} />
+          <TranscribeTab 
+            video={currentVideo} 
+            projectId={projectId}
+            frames={frames}
+          />
         )}
       </main>
     </div>

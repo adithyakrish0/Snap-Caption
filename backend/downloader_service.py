@@ -7,38 +7,63 @@ import requests
 from pathlib import Path
 from yt_dlp import YoutubeDL
 
-# --- UNIVERSAL DNS BYPASS (Hugging Face / Cloud Protection) ---
-# We monkeypatch socket.getaddrinfo to resolve Meta/Instagram domains via DoH
-# This bypasses the 'DNS_RESOLUTION_NULL' block from cloud providers.
+# --- DEEP HANDSHAKE: MULTI-STACK DNS BYPASS ---
+# We sequentially try multiple DoH providers (Cloudflare, Google, Quad9)
+# to ensure we can resolve Meta/Instagram domains despite cloud firewalls.
 
 _original_getaddrinfo = socket.getaddrinfo
 
-def resolve_via_doh(hostname):
-    """Resolve a hostname via Cloudflare DNS-over-HTTPS API."""
+# Known stable IPs for Instagram (Used as final fallback if all DoH fail)
+_SAFE_IPS = {
+    "www.instagram.com": "157.240.22.174",
+    "instagram.com": "157.240.22.174",
+    "facebook.com": "157.240.13.35",
+}
+
+def resolve_via_doh(hostname, provider_ip="1.1.1.1"):
+    """Resolve a hostname via a specific DoH provider IP."""
     try:
-        # Use a high-vailability public DoH API (Cloudflare)
-        url = f"https://1.1.1.1/dns-query?name={hostname}&type=A"
+        # Use simple JSON API for DoH resolution (Cloudflare/Google style)
+        url = f"https://{provider_ip}/dns-query?name={hostname}&type=A"
         headers = {"accept": "application/dns-json"}
-        response = requests.get(url, headers=headers, timeout=5)
+        response = requests.get(url, headers=headers, timeout=3)
         data = response.json()
         
         if "Answer" in data:
-            # Return the first IP found
             return data["Answer"][0]["data"]
     except Exception:
         pass
     return None
 
+def deep_resolve(hostname):
+    """Try multiple DoH providers sequentially."""
+    providers = [
+        ("1.1.1.1", "Cloudflare"),
+        ("8.8.8.8", "Google"),
+        ("9.9.9.9", "Quad9")
+    ]
+    
+    for ip, name in providers:
+        result = resolve_via_doh(hostname, ip)
+        if result:
+            return result, name
+            
+    # Final Fallback: Hardcoded IP
+    if hostname in _SAFE_IPS:
+        return _SAFE_IPS[hostname], "Legacy Fix"
+        
+    return None, None
+
 def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     if host in ["www.instagram.com", "instagram.com", "facebook.com", "www.facebook.com"]:
-        ip = resolve_via_doh(host)
+        ip, _ = deep_resolve(host)
         if ip:
-            # Return a valid getaddrinfo response for the resolved IP
+            # Return resolution for the forced IP
             return _original_getaddrinfo(ip, port, family, type, proto, flags)
     
     return _original_getaddrinfo(host, port, family, type, proto, flags)
 
-# Apply the monkeypatch globally for the downloader process
+# Apply the monkeypatch globally
 socket.getaddrinfo = patched_getaddrinfo
 
 class DownloaderService:

@@ -14,6 +14,7 @@ from sse_starlette.sse import EventSourceResponse
 from downloader_service import DownloaderService
 from extractor_service import ExtractorService
 from transcriber_service import TranscriberService
+from export_service import ExportService
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -45,6 +46,14 @@ DATA_PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 downloader = DownloaderService()
 extractor = ExtractorService(output_base=str(DATA_PROJECTS_DIR))
 transcriber = TranscriberService() 
+exporter = ExportService()
+
+# Export Data Model
+class ExportRequest(BaseModel):
+    project_id: str
+    selected_frames: List[dict]
+    transcription: dict
+    title: Optional[str] = "SnapCaption_Asset"
 
 # API Routes
 @app.post("/upload")
@@ -106,10 +115,31 @@ async def transcribe_stream(video_path: str):
             
     return EventSourceResponse(event_generator())
 
+@app.post("/export")
+async def export_bundle(req: ExportRequest):
+    try:
+        # Wrap title to be filesystem safe
+        safe_title = "".join([c if c.isalnum() else "_" for c in req.title])
+        export_path, filename = exporter.create_bundle(
+            req.project_id,
+            req.selected_frames,
+            req.transcription,
+            safe_title
+        )
+        return {
+            "status": "complete",
+            "download_url": f"/files/exports/{filename}",
+            "filename": filename
+        }
+    except Exception as e:
+        print(f"Export Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Serve static files (screenshots and downloads)
 app.mount("/files/downloads", StaticFiles(directory=DOWNLOAD_DIR), name="downloads")
 app.mount("/files/screenshots", StaticFiles(directory=SCREENSHOT_DIR), name="screenshots")
 app.mount("/files/projects", StaticFiles(directory=DATA_PROJECTS_DIR), name="projects")
+app.mount("/files/exports", StaticFiles(directory=exporter.output_dir), name="exports")
 
 # Production: Serve Built Frontend
 if FRONTEND_DIST.exists():
