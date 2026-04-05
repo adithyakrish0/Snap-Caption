@@ -55,7 +55,14 @@ def deep_resolve(hostname):
     return None, None
 
 def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-    if host in ["www.instagram.com", "instagram.com", "facebook.com", "www.facebook.com"]:
+    # Expanded list of domains for Universal Bypass (Meta & Google/YouTube)
+    targeted_domains = [
+        "instagram.com", "facebook.com", "fbcdn.net",
+        "youtube.com", "googlevideo.com", "youtu.be", "ytimg.com"
+    ]
+    
+    is_target = any(domain in host for domain in targeted_domains)
+    if is_target:
         ip, _ = deep_resolve(host)
         if ip:
             # Return resolution for the forced IP

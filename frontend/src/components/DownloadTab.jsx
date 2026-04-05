@@ -3,6 +3,15 @@ import { Download, Loader2, Play, Info, CheckCircle2, AlertCircle, FileVideo, Cl
 
 const API_URL = ""
 
+const getDomain = (url) => {
+    try {
+        const host = new URL(url).hostname.replace('www.', '')
+        return host
+    } catch (e) {
+        return "the platform"
+    }
+}
+
 export default function DownloadTab({ onDownloadComplete }) {
     const [url, setUrl] = useState('')
     const [loading, setLoading] = useState(false)
@@ -292,7 +301,7 @@ export default function DownloadTab({ onDownloadComplete }) {
                             <div className="flex-1">
                                 <h3 className="text-xl font-black text-white tracking-tight mb-2">Extraction Signal Interrupted</h3>
                                 <div className="text-sm text-red-200/60 leading-relaxed max-w-3xl space-y-2">
-                                    <p>The network handshake with <span className="text-red-400 font-mono">instagram.com</span> was blocked by the cloud provider's firewall.</p>
+                                    <p>The network handshake with <span className="text-red-400 font-mono">{getDomain(url)}</span> was blocked by the cloud provider's firewall.</p>
                                     <p className="text-xs font-mono opacity-50">ERROR_CODE: {error.includes('resolve') ? 'DNS_RESOLUTION_NULL' : 'AUTH_REJECTED'}</p>
                                 </div>
                             </div>
