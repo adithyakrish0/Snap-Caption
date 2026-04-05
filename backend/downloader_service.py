@@ -95,6 +95,9 @@ class DownloaderService:
             # We can't yield from here, but we track state
             pass
 
+        # --- STEALTH ENGINE 2026: GLOBAL AUTHORITY ---
+        cookie_path = Path(__file__).resolve().parent / "data" / "cookies.txt"
+        
         # Base options for high-quality extraction
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
@@ -103,33 +106,37 @@ class DownloaderService:
             'quiet': False,
             'no_warnings': False,
             'verbose': True,
-            'user_agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
             'overwrites': True,
-            'source_address': '0.0.0.0',
             'nocheckcertificate': True,
             'socket_timeout': 30,
-            'retries': 3,
+            'retries': 5,
             'progress_hooks': [_progress_hook],
+            # 2026 Stealth Core
+            'javascript_executor': 'deno',
+            'impersonate': 'chrome',
         }
 
-        # Apply Proxy if provided
+        # Apply Global Cookies if synced by Owner
+        if cookie_path.exists():
+            ydl_opts['cookiefile'] = str(cookie_path)
+
+        # Apply User Proxy if provided (Iron Handshake)
         if proxy:
             ydl_opts['proxy'] = proxy
 
         # Specialized YouTube/Meta bypass logic
         if "youtube.com" in url or "youtu.be" in url:
-            # 2025/2026: 'mweb' and 'web' clients work best from datacenter IPs.
+            # Optimized clients for Cloud-Datacenters
             ydl_opts['extractor_args'] = {
                 'youtube': {
-                    'player_client': ['mweb', 'web'],
-                    'player_skip': ['webpage'],
+                    'player_client': ['web', 'mweb'],
+                    'player_skip': ['webpage', 'configs'],
                 }
             }
-            # Inject PO-Token if provided
+            # Inject PO-Token if provided from UI
             if po_token:
                 ydl_opts['extractor_args']['youtube']['po_token'] = [po_token]
             
-            ydl_opts['extractor_args']['youtube']['player_skip'] = ['configs']
         elif "instagram.com" in url:
             ydl_opts['referer'] = 'https://www.instagram.com/'
         elif "tiktok.com" in url:

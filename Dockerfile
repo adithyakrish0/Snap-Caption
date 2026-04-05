@@ -15,15 +15,22 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     git \
+    curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Deno (required for modern YouTube signature solving in 2026)
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh && \
+    mv /root/.deno/bin/deno /usr/bin/deno && \
+    rm -rf /root/.deno
 
 WORKDIR /app
 
 # Copy and install backend dependencies
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-# ALWAYS UPDATE YT-DLP to latest to bypass extraction blocks
-RUN pip install --no-cache-dir -U yt-dlp
+# ALWAYS UPDATE YT-DLP to latest NIGHTLY to bypass zero-day extraction blocks
+RUN pip install --no-cache-dir -U --pre yt-dlp
 
 # Copy backend source
 COPY backend/ ./backend/

@@ -16,11 +16,25 @@ from extractor_service import ExtractorService
 from transcriber_service import TranscriberService
 from export_service import ExportService
 
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
+import base64
 
 app = FastAPI()
+
+# Global Auth Handshake: Decode cookies from HF Secrets if available
+@app.on_event("startup")
+async def startup_event():
+    cookie_b64 = os.getenv("YT_COOKIES_B64")
+    if cookie_b64:
+        try:
+            print("[STEALTH] Authority Token Detected. Initializing extraction gateway...")
+            cookie_content = base64.b64decode(cookie_b64).decode('utf-8')
+            cookie_path = BASE_DIR / "backend" / "data" / "cookies.txt"
+            cookie_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(cookie_path, "w", encoding='utf-8') as f:
+                f.write(cookie_content)
+            print(f"[STEALTH] Authority Synced: {cookie_path}")
+        except Exception as e:
+            print(f"[STEALTH] Handshake Failure: {str(e)}")
 
 # Enable CORS for frontend communication
 app.add_middleware(
