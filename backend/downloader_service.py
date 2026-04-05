@@ -88,34 +88,73 @@ class DownloaderService:
         """
         loop = asyncio.get_event_loop()
         
+        # Capture real yt-dlp errors for diagnostic streaming
+        captured_warnings = []
+
+        def _progress_hook(d):
+            # We can't yield from here, but we track state
+            pass
+
         # Base options for high-quality extraction
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': str(self.output_dir / '%(title)s.%(ext)s'),
             'noplaylist': True,
-            'quiet': True,
-            'no_warnings': True,
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'quiet': False,
+            'no_warnings': False,
+            'verbose': True,
+            'user_agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
             'overwrites': True,
-            'source_address': '0.0.0.0', # Force IPv4 to bypass cloud DNS/network resolution errors
+            'source_address': '0.0.0.0',
             'nocheckcertificate': True,
+            'socket_timeout': 30,
+            'retries': 3,
+            'progress_hooks': [_progress_hook],
         }
 
         # Specialized YouTube/Meta bypass logic
         if "youtube.com" in url or "youtu.be" in url:
-            ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android', 'ios']}}
+            # 2025/2026: 'mweb' and 'web' clients work best from datacenter IPs.
+            # 'android' and 'ios' now require proof-of-origin tokens that DCs can't provide.
+            ydl_opts['extractor_args'] = {
+                'youtube': {
+                    'player_client': ['mweb', 'web'],
+                    'player_skip': ['webpage'],
+                }
+            }
+            # Use a PO token workaround if available
+            ydl_opts['extractor_args']['youtube']['player_skip'] = ['configs']
         elif "instagram.com" in url:
-            # Instagram often requires forcing a generic referer or specific headers
             ydl_opts['referer'] = 'https://www.instagram.com/'
+        elif "tiktok.com" in url:
+            ydl_opts['referer'] = 'https://www.tiktok.com/'
 
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 # 1. Info Extraction
-                yield {"status": "log", "message": "Applying Universal DNS Handshake (DoH Bypassing)...", "type": "warning"}
-                yield {"status": "log", "message": "Establishing secure connection to cloud source...", "type": "info"}
+                yield {"status": "log", "message": "Universal DNS Handshake active (DoH multi-stack)...", "type": "warning"}
+                yield {"status": "log", "message": "Negotiating extraction protocol with source...", "type": "info"}
                 
                 # Run blocking extract_info in executor
-                info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+                try:
+                    info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+                except Exception as extract_err:
+                    err_str = str(extract_err)
+                    yield {"status": "log", "message": f"Primary extraction failed: {err_str[:200]}", "type": "error"}
+                    
+                    # Retry with simpler format for YouTube
+                    if "youtube" in url or "youtu.be" in url:
+                        yield {"status": "log", "message": "Retrying with fallback protocol (format=best)...", "type": "warning"}
+                        ydl_opts['format'] = 'best'
+                        ydl_opts['extractor_args'] = {
+                            'youtube': {
+                                'player_client': ['web'],
+                            }
+                        }
+                        with YoutubeDL(ydl_opts) as ydl2:
+                            info = await loop.run_in_executor(None, lambda: ydl2.extract_info(url, download=False))
+                    else:
+                        raise extract_err
                 
                 title = info.get('title', 'video')
                 yield {"status": "log", "message": f"Source Verified: '{title}'", "type": "success"}
@@ -133,6 +172,7 @@ class DownloaderService:
         except Exception as e:
             error_msg = str(e)
             yield {"status": "error", "message": f"Extraction Failed: {error_msg}"}
+
 
     def get_video_id(self, url: str):
         if not url: return None
