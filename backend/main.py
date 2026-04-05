@@ -75,10 +75,10 @@ async def upload_video(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/download/stream")
-async def download_stream(url: str):
+async def download_stream(url: str, proxy: Optional[str] = None, po_token: Optional[str] = None):
     async def event_generator():
         try:
-            async for event in downloader.download_stream(url):
+            async for event in downloader.download_stream(url, proxy=proxy, po_token=po_token):
                 yield json.dumps(event)
         except Exception as e:
             yield json.dumps({"status": "error", "message": str(e)})

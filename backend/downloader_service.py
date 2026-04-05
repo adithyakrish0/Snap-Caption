@@ -81,7 +81,7 @@ class DownloaderService:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    async def download_stream(self, url: str):
+    async def download_stream(self, url: str, proxy: str = None, po_token: str = None):
         """
         Universal Asynchronous Downloader.
         Supports YouTube, Instagram, TikTok, etc. with live SSE feedback.
@@ -112,17 +112,23 @@ class DownloaderService:
             'progress_hooks': [_progress_hook],
         }
 
+        # Apply Proxy if provided
+        if proxy:
+            ydl_opts['proxy'] = proxy
+
         # Specialized YouTube/Meta bypass logic
         if "youtube.com" in url or "youtu.be" in url:
             # 2025/2026: 'mweb' and 'web' clients work best from datacenter IPs.
-            # 'android' and 'ios' now require proof-of-origin tokens that DCs can't provide.
             ydl_opts['extractor_args'] = {
                 'youtube': {
                     'player_client': ['mweb', 'web'],
                     'player_skip': ['webpage'],
                 }
             }
-            # Use a PO token workaround if available
+            # Inject PO-Token if provided
+            if po_token:
+                ydl_opts['extractor_args']['youtube']['po_token'] = [po_token]
+            
             ydl_opts['extractor_args']['youtube']['player_skip'] = ['configs']
         elif "instagram.com" in url:
             ydl_opts['referer'] = 'https://www.instagram.com/'
@@ -132,7 +138,7 @@ class DownloaderService:
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 # 1. Info Extraction
-                yield {"status": "log", "message": "Universal DNS Handshake active (DoH multi-stack)...", "type": "warning"}
+                yield {"status": "log", "message": f"Iron Handshake active. Proxy: {'ENABLED' if proxy else 'DIRECT'}.", "type": "warning"}
                 yield {"status": "log", "message": "Negotiating extraction protocol with source...", "type": "info"}
                 
                 # Run blocking extract_info in executor
@@ -151,6 +157,10 @@ class DownloaderService:
                                 'player_client': ['web'],
                             }
                         }
+                        # Persist proxy/token during retry
+                        if proxy: ydl_opts['proxy'] = proxy
+                        if po_token: ydl_opts['extractor_args']['youtube']['po_token'] = [po_token]
+
                         with YoutubeDL(ydl_opts) as ydl2:
                             info = await loop.run_in_executor(None, lambda: ydl2.extract_info(url, download=False))
                     else:
